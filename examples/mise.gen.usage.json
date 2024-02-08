@@ -1,0 +1,32 @@
+{
+  "name": "mise",
+  "bin_name": "mise",
+  "version": "0.1.0",
+  "author": "jdx",
+  "command": {
+    "help_about": "The front-end to your dev env",
+    "help_about_long": "mise is a tool for managing runtime versions.\nIt's a replacement for tools like nvm, nodenv, rbenv, rvm, chruby, pyenv, etc.",
+    "help_usage": "mise [OPTIONS] <COMMAND>",
+    "commands": {
+      "init": {
+        "help_about": "Initializes mise in the current shell session"
+      },
+      "exec": {
+        "help_about": "Execute a command with tool(s) set",
+        "commands": {
+          "node@20": {
+            "help_about_long": "foo"
+          }
+        }
+      }
+    },
+    "params": [
+      {
+        "name": "help",
+        "help": "Prints help information",
+        "short": "h",
+        "long": "help"
+      }
+    ]
+  }
+}

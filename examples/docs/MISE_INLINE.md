@@ -1,4 +1,4 @@
-<!-- [USAGE] load file="../mise.usage.kdl" -->
+<!-- [USAGE] load file="../mise.usage.json" -->
 <!-- [USAGE] title -->
 
 # mise

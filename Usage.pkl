@@ -1,0 +1,63 @@
+//module dev.jdx.usage
+
+includes: String?
+name: String?
+bin_name: String?
+version: String?
+author: String?
+help_expected: Boolean?
+command: Command?
+
+const function param(def: String): Param = (let (m = Regex(#"(\w+:)?\s*(-[0-9a-zA-Z])?\s*(--[\w-]+)?\s*(#\s*.+)?"#).matchEntire(def))
+    if (m == null)
+      new Flag { help = def }
+    else
+      new Flag {
+        // noinspection UnresolvedElement
+        short = m.groups[2]?.value.ifNonNull((s) -> s.drop(1))
+        // noinspection UnresolvedElement
+        long = m.groups[3]?.value.ifNonNull((s) -> s.drop(2))
+        name = m.groups[1]?.value ?? long ?? short ?? throw("No name provided")
+        // [explicit name]: [short] [long] [value name] [...] # [help string]
+        //         short = key.split(",").filter((s) -> s.startsWith("-") && s.length == 2).map((s) -> s[1]).firstOrNull
+        //         long = key.split(",").filter((s) -> s.startsWith("--")).map((s) -> s.drop(2)).firstOrNull
+      })
+
+class Command {
+  help_before: String?
+  help_before_long: String?
+  help_about: String?
+  help_about_long: String?
+  help_usage: String?
+  help_after: String?
+  help_after_long: String?
+
+  commands: Mapping<String, Command>?
+  params: Listing<Param>?
+}
+
+abstract class Param {
+  name: String
+  help: String?
+  help_long: String?
+  required: Boolean?
+  multiple: Boolean?
+}
+class Positional extends Param {
+  default: String?
+  possible_values: List<String>?
+}
+class Option extends Param {
+  short: String?
+  long: String?
+  default: String?
+  possible_values: List<String>?
+}
+class Flag extends Param {
+  short: String?
+  long: String?
+}
+
+output {
+  renderer = new JsonRenderer{}
+}

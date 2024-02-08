@@ -11,7 +11,7 @@ use thiserror::Error;
 use xx::file;
 
 use usage::parse::config::SpecConfig;
-use usage::{Spec, SpecCommand};
+use usage::{Command, CLI};
 
 use crate::errors::UsageCLIError;
 
@@ -78,7 +78,7 @@ const CONFIG_TEMPLATE: &str = r#"
 !DEFAULT!
 
 !HELP!
-!LONG_HELP!
+!HELP_LONG!
 "#;
 
 const COMMANDS_INDEX_TEMPLATE: &str = r#"
@@ -97,9 +97,9 @@ const COMMAND_TEMPLATE: &str = r##"
 {% set deprecated = "" %}{% if cmd.deprecated %}{% set deprecated = "~~" %}{% endif %}
 {{ header }} {{deprecated}}`{{ bin }} {{ cmd.full_cmd | join(sep=" ") }}`{{deprecated}}{% if cmd.deprecated %} (deprecated){% endif -%}
 
-{% if cmd.before_long_help %}
+{% if cmd.before_help_long %}
 
-{{ cmd.before_long_help | trim }}
+{{ cmd.before_help_long | trim }}
 
 {% elif cmd.before_help %}
 {{ cmd.before_help | trim }}
@@ -110,9 +110,9 @@ const COMMAND_TEMPLATE: &str = r##"
 ###### Aliases: `{{ cmd.aliases | join(sep="`, `") }}`{{""-}}
 {% endif -%}
 
-{% if cmd.long_help %}
+{% if cmd.help_long %}
 
-{{ cmd.long_help | trim -}}
+{{ cmd.help_long | trim -}}
 {% elif cmd.help %}
 
 {{ cmd.help | trim -}}
@@ -131,7 +131,7 @@ const COMMAND_TEMPLATE: &str = r##"
 ###### Arg `{{ arg.usage }}`
 
 {% if arg.required %}(required){% endif -%}
-{{ arg.long_help | default(value=arg.help) -}}
+{{ arg.help_long | default(value=arg.help) -}}
 
 {% endfor -%}
 {% endif -%}
@@ -143,7 +143,7 @@ const COMMAND_TEMPLATE: &str = r##"
 {% else -%}
 ##### Flag `{{ flag.usage }}`
 {% endif %}
-{{ flag.long_help | default(value=flag.help) -}}
+{{ flag.help_long | default(value=flag.help) -}}
 {% endfor -%}
 {% endif -%}
 
@@ -163,8 +163,8 @@ const COMMAND_TEMPLATE: &str = r##"
 {% endif -%}
 {% endfor -%}
 
-{% if cmd.after_long_help -%}
-{{ cmd.after_long_help | trim }}
+{% if cmd.after_help_long -%}
+{{ cmd.after_help_long | trim }}
 {% elif cmd.after_help -%}
 {{ cmd.after_help | trim }}
 {% endif -%}
@@ -224,7 +224,7 @@ fn print_config(config: &SpecConfig) -> miette::Result<String> {
             tmpl("!DEFAULT!", format!("* default: `{default}`"));
             // out = out.replace("!DEFAULT!", &format!("* default: `{default}`"));
         }
-        if let Some(help) = prop.long_help.clone().or(prop.help.clone()) {
+        if let Some(help) = prop.help_long.clone().or(prop.help.clone()) {
             // out = out.replace("!HELP!", &format!("* help: `{help}`"));
             tmpl("!HELP!", help);
         }
@@ -331,7 +331,7 @@ struct MarkdownBuilder {
     root: PathBuf,
     directives: Vec<UsageMdDirective>,
 
-    spec: Option<Spec>,
+    spec: Option<CLI>,
 }
 
 impl MarkdownBuilder {
@@ -353,7 +353,7 @@ impl MarkdownBuilder {
                     true => self.root.join(file),
                     false => file.to_path_buf(),
                 };
-                let (spec, _) = Spec::parse_file(&file)?;
+                let (spec, _) = CLI::parse_file(&file)?;
                 self.spec = Some(spec);
             }
         }
@@ -364,7 +364,7 @@ impl MarkdownBuilder {
     #[requires(self.spec.is_some())]
     fn render(&self) -> miette::Result<HashMap<PathBuf, String>> {
         let spec = self.spec.as_ref().unwrap();
-        let commands = gather_subcommands(&[&spec.cmd]);
+        let commands = gather_subcommands(&[&spec.command]);
         let ctx = tera::Context::from_serialize(&self.spec).into_diagnostic()?;
         let mut outputs = HashMap::new();
         let mut plain = true;
@@ -395,12 +395,17 @@ impl MarkdownBuilder {
                 }
                 UsageMdDirective::GlobalArgs { token } => {
                     main.push(token.clone());
-                    let args = spec.cmd.args.iter().filter(|a| !a.hide).collect::<Vec<_>>();
+                    let args = spec
+                        .command
+                        .args
+                        .iter()
+                        .filter(|a| !a.hide)
+                        .collect::<Vec<_>>();
                     if !args.is_empty() {
                         for arg in args {
                             // let name = &arg.usage();
                             let name = "USAGE";
-                            if let Some(about) = &arg.long_help {
+                            if let Some(about) = &arg.help_long {
                                 main.push(format!("### {name}", name = name));
                                 main.push(about.to_string());
                             } else if let Some(about) = &arg.help {
@@ -415,7 +420,7 @@ impl MarkdownBuilder {
                 UsageMdDirective::GlobalFlags { token } => {
                     main.push(token.clone());
                     let flags = spec
-                        .cmd
+                        .command
                         .flags
                         .iter()
                         .filter(|f| !f.hide)
@@ -423,7 +428,7 @@ impl MarkdownBuilder {
                     if !flags.is_empty() {
                         for flag in flags {
                             let name = flag.usage();
-                            if let Some(about) = &flag.long_help {
+                            if let Some(about) = &flag.help_long {
                                 main.push(format!("### {name}"));
                                 main.push(about.to_string());
                             } else if let Some(about) = &flag.help {
@@ -483,7 +488,7 @@ impl MarkdownBuilder {
     }
 }
 
-fn gather_subcommands(cmds: &[&SpecCommand]) -> Vec<SpecCommand> {
+fn gather_subcommands(cmds: &[&Command]) -> Vec<Command> {
     let mut subcommands = vec![];
     for cmd in cmds {
         if cmd.hide {
@@ -492,7 +497,7 @@ fn gather_subcommands(cmds: &[&SpecCommand]) -> Vec<SpecCommand> {
         if !cmd.name.is_empty() {
             subcommands.push((*cmd).clone());
         }
-        let more = gather_subcommands(&cmd.subcommands.values().collect::<Vec<_>>());
+        let more = gather_subcommands(&cmd.commands.values().collect::<Vec<_>>());
         subcommands.extend(more);
     }
     subcommands

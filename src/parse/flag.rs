@@ -2,16 +2,29 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 use kdl::{KdlDocument, KdlEntry, KdlNode};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::UsageErr;
 use crate::error::UsageErr::InvalidFlag;
 use crate::parse::context::ParsingContext;
 use crate::parse::helpers::NodeHelper;
-use crate::{bail_parse, SpecArg};
+use crate::{bail_parse, SpecArg_old};
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Flag {
+    pub hide: bool,
+    pub help: Option<String>,
+    pub help_long: Option<String>,
+}
+
+impl Flag {
+    pub fn usage(&self) -> String {
+        "".into()
+    }
+}
 
 #[derive(Debug, Default, Serialize, Clone)]
-pub struct SpecFlag {
+pub struct SpecFlag_old {
     pub name: String,
     pub usage: String,
     pub help: Option<String>,
@@ -24,11 +37,11 @@ pub struct SpecFlag {
     pub hide: bool,
     pub global: bool,
     pub count: bool,
-    pub arg: Option<SpecArg>,
+    pub arg: Option<SpecArg_old>,
     pub default: Option<String>,
 }
 
-impl SpecFlag {
+impl SpecFlag_old {
     pub(crate) fn parse(ctx: &ParsingContext, node: &NodeHelper) -> Result<Self, UsageErr> {
         let mut flag: Self = node.arg(0)?.ensure_string()?.parse()?;
         for (k, v) in node.props() {
@@ -53,7 +66,7 @@ impl SpecFlag {
         }
         for child in node.children() {
             match child.name() {
-                "arg" => flag.arg = Some(SpecArg::parse(ctx, &child)?),
+                "arg" => flag.arg = Some(SpecArg_old::parse(ctx, &child)?),
                 k => bail_parse!(ctx, *child.node.span(), "unsupported flag value key {k}"),
             }
         }
@@ -75,8 +88,8 @@ impl SpecFlag {
     }
 }
 
-impl From<&SpecFlag> for KdlNode {
-    fn from(flag: &SpecFlag) -> KdlNode {
+impl From<&SpecFlag_old> for KdlNode {
+    fn from(flag: &SpecFlag_old) -> KdlNode {
         let mut node = KdlNode::new("flag");
         let name = flag
             .short
@@ -118,7 +131,7 @@ impl From<&SpecFlag> for KdlNode {
     }
 }
 
-impl FromStr for SpecFlag {
+impl FromStr for SpecFlag_old {
     type Err = UsageErr;
     fn from_str(input: &str) -> std::result::Result<Self, UsageErr> {
         let mut flag = Self::default();
@@ -144,7 +157,7 @@ impl FromStr for SpecFlag {
 }
 
 #[cfg(feature = "clap")]
-impl From<&clap::Arg> for SpecFlag {
+impl From<&clap::Arg> for SpecFlag_old {
     fn from(c: &clap::Arg) -> Self {
         let required = c.is_required_set();
         let help = c.get_help().map(|s| s.to_string());
@@ -200,8 +213,8 @@ impl From<&clap::Arg> for SpecFlag {
 }
 
 #[cfg(feature = "clap")]
-impl From<&SpecFlag> for clap::Arg {
-    fn from(flag: &SpecFlag) -> Self {
+impl From<&SpecFlag_old> for clap::Arg {
+    fn from(flag: &SpecFlag_old) -> Self {
         let mut a = clap::Arg::new(&flag.name);
         if let Some(desc) = &flag.help {
             a = a.help(desc);

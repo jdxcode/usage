@@ -1,6 +1,6 @@
-use crate::Spec;
+use crate::Spec_old;
 
-pub fn complete_zsh(spec: &Spec) -> String {
+pub fn complete_zsh(spec: &Spec_old) -> String {
     // let cmds = vec![&spec.cmd];
     // let args = render_args(&cmds);
     let bin = &spec.bin;
@@ -37,13 +37,13 @@ fi
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parse::spec::Spec;
+    use crate::parse::spec::Spec_old;
 
     #[test]
     fn test_complete_zsh() {
         let spec = r#"
         "#;
-        let spec = Spec::parse(&Default::default(), spec).unwrap();
+        let spec = Spec_old::parse(&Default::default(), spec).unwrap();
         assert_snapshot!(complete_zsh(&spec).trim(), @r###"
         #compdef 
         _() {

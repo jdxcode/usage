@@ -5,12 +5,12 @@ use std::path::{Path, PathBuf};
 use clap::Command;
 use miette::IntoDiagnostic;
 
-use usage::Spec;
+use usage::Spec_old;
 
 use crate::{env, hash};
 
 pub fn execute(script: &Path, args: &[String]) -> miette::Result<()> {
-    let (schema, body) = Spec::parse_file(script)?;
+    let (schema, body) = Spec_old::parse_file(script)?;
     let cmd: Command = (&schema).into();
     let m = cmd.get_matches_from(args[1..].to_vec());
     for flag in &schema.cmd.flags {

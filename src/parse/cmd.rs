@@ -5,15 +5,15 @@ use serde::Serialize;
 use crate::error::UsageErr;
 use crate::parse::context::ParsingContext;
 use crate::parse::helpers::NodeHelper;
-use crate::{Spec, SpecArg, SpecFlag};
+use crate::{SpecArg_old, SpecFlag_old, Spec_old};
 
 #[derive(Debug, Default, Serialize, Clone)]
-pub struct SpecCommand {
+pub struct SpecCommand_old {
     pub full_cmd: Vec<String>,
     pub usage: String,
-    pub subcommands: IndexMap<String, SpecCommand>,
-    pub args: Vec<SpecArg>,
-    pub flags: Vec<SpecFlag>,
+    pub subcommands: IndexMap<String, SpecCommand_old>,
+    pub args: Vec<SpecArg_old>,
+    pub flags: Vec<SpecFlag_old>,
     pub deprecated: Option<String>,
     pub hide: bool,
     pub subcommand_required: bool,
@@ -46,7 +46,7 @@ impl SpecExample {
     }
 }
 
-impl SpecCommand {
+impl SpecCommand_old {
     pub(crate) fn parse(ctx: &ParsingContext, node: &NodeHelper) -> Result<Self, UsageErr> {
         node.ensure_arg_len(1..=1)?;
         let mut cmd = Self {
@@ -77,10 +77,10 @@ impl SpecCommand {
         }
         for child in node.children() {
             match child.name() {
-                "flag" => cmd.flags.push(SpecFlag::parse(ctx, &child)?),
-                "arg" => cmd.args.push(SpecArg::parse(ctx, &child)?),
+                "flag" => cmd.flags.push(SpecFlag_old::parse(ctx, &child)?),
+                "arg" => cmd.args.push(SpecArg_old::parse(ctx, &child)?),
                 "cmd" => {
-                    let node = SpecCommand::parse(ctx, &child)?;
+                    let node = SpecCommand_old::parse(ctx, &child)?;
                     cmd.subcommands.insert(node.name.to_string(), node);
                 }
                 "alias" => {
@@ -178,8 +178,8 @@ impl SpecCommand {
     }
 }
 
-impl From<&SpecCommand> for KdlNode {
-    fn from(cmd: &SpecCommand) -> Self {
+impl From<&SpecCommand_old> for KdlNode {
+    fn from(cmd: &SpecCommand_old) -> Self {
         let mut node = Self::new("cmd");
         node.entries_mut().push(cmd.name.clone().into());
         if cmd.hide {
@@ -247,7 +247,7 @@ impl From<&SpecCommand> for KdlNode {
 }
 
 #[cfg(feature = "clap")]
-impl From<&clap::Command> for SpecCommand {
+impl From<&clap::Command> for SpecCommand_old {
     fn from(cmd: &clap::Command) -> Self {
         let mut spec = Self {
             name: cmd.get_name().to_string(),
@@ -278,7 +278,7 @@ impl From<&clap::Command> for SpecCommand {
         }
         spec.subcommand_required = cmd.is_subcommand_required_set();
         for subcmd in cmd.get_subcommands() {
-            let mut scmd: SpecCommand = subcmd.into();
+            let mut scmd: SpecCommand_old = subcmd.into();
             scmd.name = subcmd.get_name().to_string();
             spec.subcommands.insert(scmd.name.clone(), scmd);
         }
@@ -287,8 +287,8 @@ impl From<&clap::Command> for SpecCommand {
 }
 
 #[cfg(feature = "clap")]
-impl From<&SpecCommand> for clap::Command {
-    fn from(cmd: &SpecCommand) -> Self {
+impl From<&SpecCommand_old> for clap::Command {
+    fn from(cmd: &SpecCommand_old) -> Self {
         let mut app = Self::new(cmd.name.to_string());
         if let Some(help) = &cmd.help {
             app = app.about(help);
@@ -334,7 +334,7 @@ impl From<&SpecCommand> for clap::Command {
 }
 
 #[cfg(feature = "clap")]
-impl From<clap::Command> for Spec {
+impl From<clap::Command> for Spec_old {
     fn from(cmd: clap::Command) -> Self {
         (&cmd).into()
     }

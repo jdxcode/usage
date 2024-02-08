@@ -3,21 +3,42 @@ use std::iter::once;
 use std::path::Path;
 
 use kdl::{KdlDocument, KdlEntry, KdlNode};
-use serde::Serialize;
+use miette::IntoDiagnostic;
+use serde::{Deserialize, Serialize};
 use xx::file;
 
 use crate::error::UsageErr;
-use crate::parse::cmd::SpecCommand;
+use crate::parse::cmd::SpecCommand_old;
+use crate::parse::command::Command;
 use crate::parse::config::SpecConfig;
 use crate::parse::context::ParsingContext;
 use crate::parse::helpers::NodeHelper;
-use crate::{SpecArg, SpecFlag};
+use crate::{SpecArg_old, SpecFlag_old};
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct CLI {
+    pub name: String,
+    pub bin_name: String,
+    pub version: Option<String>,
+    pub author: Option<String>,
+
+    pub config: SpecConfig,
+    pub command: Command,
+}
+
+impl CLI {
+    pub fn parse_file(file: &Path) -> Result<(CLI, String), UsageErr> {
+        let (spec, body) = split_script(file)?;
+        let spec = serde_json::from_str(&spec)?;
+        Ok((spec, body))
+    }
+}
 
 #[derive(Debug, Default, Clone, Serialize)]
-pub struct Spec {
+pub struct Spec_old {
     pub name: String,
     pub bin: String,
-    pub cmd: SpecCommand,
+    pub cmd: SpecCommand_old,
     pub config: SpecConfig,
     pub version: Option<String>,
     pub usage: String,
@@ -26,8 +47,8 @@ pub struct Spec {
     pub long_about: Option<String>,
 }
 
-impl Spec {
-    pub fn parse_file(file: &Path) -> Result<(Spec, String), UsageErr> {
+impl Spec_old {
+    pub fn parse_file(file: &Path) -> Result<(Spec_old, String), UsageErr> {
         let (spec, body) = split_script(file)?;
         let ctx = ParsingContext::new(file, &spec);
         let mut schema = Self::parse(&ctx, &spec)?;
@@ -39,7 +60,7 @@ impl Spec {
         }
         Ok((schema, body))
     }
-    pub fn parse_spec(input: &str) -> Result<Spec, UsageErr> {
+    pub fn parse_spec(input: &str) -> Result<Spec_old, UsageErr> {
         Self::parse(&Default::default(), input)
     }
 
@@ -51,7 +72,7 @@ impl Spec {
             && self.config.is_empty()
     }
 
-    pub(crate) fn parse(ctx: &ParsingContext, input: &str) -> Result<Spec, UsageErr> {
+    pub(crate) fn parse(ctx: &ParsingContext, input: &str) -> Result<Spec_old, UsageErr> {
         let kdl: KdlDocument = input
             .parse()
             .map_err(|err: kdl::KdlError| UsageErr::KdlError(err))?;
@@ -66,10 +87,10 @@ impl Spec {
                 "about" => schema.about = Some(node.arg(0)?.ensure_string()?),
                 "long_about" => schema.long_about = Some(node.arg(0)?.ensure_string()?),
                 "usage" => schema.usage = node.arg(0)?.ensure_string()?,
-                "arg" => schema.cmd.args.push(SpecArg::parse(ctx, &node)?),
-                "flag" => schema.cmd.flags.push(SpecFlag::parse(ctx, &node)?),
+                "arg" => schema.cmd.args.push(SpecArg_old::parse(ctx, &node)?),
+                "flag" => schema.cmd.flags.push(SpecFlag_old::parse(ctx, &node)?),
                 "cmd" => {
-                    let node: SpecCommand = SpecCommand::parse(ctx, &node)?;
+                    let node: SpecCommand_old = SpecCommand_old::parse(ctx, &node)?;
                     schema.cmd.subcommands.insert(node.name.to_string(), node);
                 }
                 "config" => schema.config = SpecConfig::parse(ctx, &node)?,
@@ -96,7 +117,7 @@ impl Spec {
         Ok(schema)
     }
 
-    fn merge(&mut self, other: Spec) {
+    fn merge(&mut self, other: Spec_old) {
         if !other.name.is_empty() {
             self.name = other.name;
         }
@@ -128,7 +149,7 @@ fn split_script(file: &Path) -> Result<(String, String), UsageErr> {
     Ok((schema, body))
 }
 
-fn set_subcommand_ancestors(cmd: &mut SpecCommand, ancestors: &[String]) {
+fn set_subcommand_ancestors(cmd: &mut SpecCommand_old, ancestors: &[String]) {
     if cmd.usage.is_empty() {
         cmd.usage = cmd.usage();
     }
@@ -143,7 +164,7 @@ fn set_subcommand_ancestors(cmd: &mut SpecCommand, ancestors: &[String]) {
     }
 }
 
-impl Display for Spec {
+impl Display for Spec_old {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut doc = KdlDocument::new();
         let nodes = &mut doc.nodes_mut();
@@ -194,9 +215,9 @@ impl Display for Spec {
 }
 
 #[cfg(feature = "clap")]
-impl From<&clap::Command> for Spec {
+impl From<&clap::Command> for Spec_old {
     fn from(cmd: &clap::Command) -> Self {
-        Spec {
+        Spec_old {
             name: cmd.get_name().to_string(),
             bin: cmd.get_bin_name().unwrap_or(cmd.get_name()).to_string(),
             cmd: cmd.into(),
@@ -210,8 +231,8 @@ impl From<&clap::Command> for Spec {
 }
 
 #[cfg(feature = "clap")]
-impl From<&Spec> for clap::Command {
-    fn from(schema: &Spec) -> Self {
+impl From<&Spec_old> for clap::Command {
+    fn from(schema: &Spec_old) -> Self {
         let mut cmd = clap::Command::new(&schema.name);
         for flag in schema.cmd.flags.iter() {
             cmd = cmd.arg(flag);
@@ -233,7 +254,7 @@ mod tests {
 
     #[test]
     fn test_display() {
-        let spec = Spec::parse(
+        let spec = Spec_old::parse(
             &Default::default(),
             r#"
 name "Usage CLI"
@@ -267,7 +288,7 @@ cmd "config" {
     #[cfg(feature = "clap")]
     fn test_clap() {
         let cmd = clap::Command::new("test");
-        assert_display_snapshot!(Spec::from(&cmd), @r###"
+        assert_display_snapshot!(Spec_old::from(&cmd), @r###"
         name "test"
         bin "test"
         usage "Usage: test"

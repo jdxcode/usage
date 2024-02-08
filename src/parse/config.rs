@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use kdl::{KdlDocument, KdlEntry, KdlNode};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::bail_parse;
 use crate::error::UsageErr;
@@ -9,7 +9,7 @@ use crate::parse::context::ParsingContext;
 use crate::parse::data_types::SpecDataTypes;
 use crate::parse::helpers::NodeHelper;
 
-#[derive(Debug, Default, Clone, Serialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SpecConfig {
     pub props: BTreeMap<String, SpecConfigProp>,
 }
@@ -31,7 +31,7 @@ impl SpecConfig {
                             "data_type" => prop.data_type = v.ensure_string()?.parse()?,
                             "env" => prop.env = v.ensure_string()?.to_string().into(),
                             "help" => prop.help = v.ensure_string()?.to_string().into(),
-                            "long_help" => prop.long_help = v.ensure_string()?.to_string().into(),
+                            "help_long" => prop.help_long = v.ensure_string()?.to_string().into(),
                             k => bail_parse!(ctx, node.span(), "unsupported config prop key {k}"),
                         }
                     }
@@ -58,14 +58,14 @@ impl SpecConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpecConfigProp {
     pub default: Option<String>,
     pub default_note: Option<String>,
     pub data_type: SpecDataTypes,
     pub env: Option<String>,
     pub help: Option<String>,
-    pub long_help: Option<String>,
+    pub help_long: Option<String>,
 }
 
 impl SpecConfigProp {
@@ -84,8 +84,8 @@ impl SpecConfigProp {
         if let Some(help) = &self.help {
             node.push(KdlEntry::new_prop("help", help.clone()));
         }
-        if let Some(long_help) = &self.long_help {
-            node.push(KdlEntry::new_prop("long_help", long_help.clone()));
+        if let Some(help_long) = &self.help_long {
+            node.push(KdlEntry::new_prop("help_long", help_long.clone()));
         }
         node
     }
@@ -99,7 +99,7 @@ impl Default for SpecConfigProp {
             data_type: SpecDataTypes::Null,
             env: None,
             help: None,
-            long_help: None,
+            help_long: None,
         }
     }
 }
@@ -117,11 +117,11 @@ impl From<&SpecConfig> for KdlNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::Spec;
+    use crate::Spec_old;
 
     #[test]
     fn test_config_defaults() {
-        let spec = Spec::parse(
+        let spec = Spec_old::parse(
             &Default::default(),
             r#"
 config {
@@ -129,7 +129,7 @@ config {
     prop "user" default="admin" env="USER" help="User to run as"
     prop "jobs" default=4 env="JOBS" help="Number of jobs to run"
     prop "timeout" default=1.5 env="TIMEOUT" help="Timeout in seconds" \
-        long_help="Timeout in seconds, can be fractional"
+        help_long="Timeout in seconds, can be fractional"
 }
         "#,
         )
@@ -139,7 +139,7 @@ config {
         config {
             prop "color" default="true" env="COLOR" help="Enable color output"
             prop "jobs" default="4" env="JOBS" help="Number of jobs to run"
-            prop "timeout" default="1.5" env="TIMEOUT" help="Timeout in seconds" long_help="Timeout in seconds, can be fractional"
+            prop "timeout" default="1.5" env="TIMEOUT" help="Timeout in seconds" help_long="Timeout in seconds, can be fractional"
             prop "user" default="\"admin\"" env="USER" help="User to run as"
         }
         "###);

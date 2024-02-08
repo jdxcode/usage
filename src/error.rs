@@ -30,6 +30,9 @@ pub enum UsageErr {
     #[error(transparent)]
     #[diagnostic(transparent)]
     XXError(#[from] xx::error::XXError),
+
+    #[error(transparent)]
+    JSON(#[from] serde_json::Error),
 }
 
 #[macro_export]

@@ -12,7 +12,8 @@ pub mod context;
 pub(crate) mod env;
 pub mod parse;
 
-pub use crate::parse::arg::SpecArg;
-pub use crate::parse::cmd::SpecCommand;
-pub use crate::parse::flag::SpecFlag;
-pub use crate::parse::spec::Spec;
+pub use crate::parse::arg::SpecArg_old;
+pub use crate::parse::cmd::SpecCommand_old;
+pub use crate::parse::command::Command;
+pub use crate::parse::flag::SpecFlag_old;
+pub use crate::parse::spec::{Spec_old, CLI};

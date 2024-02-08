@@ -1,6 +1,6 @@
-use crate::{env, Spec};
+use crate::{env, Spec_old};
 
-pub fn complete_bash(spec: &Spec) -> String {
+pub fn complete_bash(spec: &Spec_old) -> String {
     let usage = &*env::USAGE_CMD;
     let bin = &spec.bin;
     let raw = shell_escape::unix::escape(spec.to_string().into());
@@ -27,7 +27,7 @@ complete -F _{bin} {bin}
 
 #[cfg(test)]
 mod tests {
-    use crate::parse::spec::Spec;
+    use crate::parse::spec::Spec_old;
 
     use super::*;
 
@@ -35,7 +35,7 @@ mod tests {
     fn test_complete_bash() {
         let spec = r#"
         "#;
-        let spec = Spec::parse(&Default::default(), spec).unwrap();
+        let spec = Spec_old::parse(&Default::default(), spec).unwrap();
         assert_snapshot!(complete_bash(&spec).trim(), @r###"
         _() {
             local raw

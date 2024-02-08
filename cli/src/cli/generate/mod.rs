@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use usage::error::UsageErr;
 
-use usage::Spec;
+use usage::Spec_old;
 
 mod completion;
 mod markdown;
@@ -28,11 +28,11 @@ impl Generate {
     }
 }
 
-pub fn file_or_spec(file: &Option<PathBuf>, spec: &Option<String>) -> Result<Spec, UsageErr> {
+pub fn file_or_spec(file: &Option<PathBuf>, spec: &Option<String>) -> Result<Spec_old, UsageErr> {
     if let Some(file) = file {
-        let (spec, _) = Spec::parse_file(file)?;
+        let (spec, _) = Spec_old::parse_file(file)?;
         Ok(spec)
     } else {
-        Spec::parse_spec(spec.as_ref().unwrap())
+        Spec_old::parse_spec(spec.as_ref().unwrap())
     }
 }

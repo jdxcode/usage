@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use usage::Spec;
+use usage::Spec_old;
 
 #[derive(Args)]
 #[clap(visible_alias = "c", aliases=["complete", "completions"])]
@@ -20,10 +20,10 @@ pub struct Completion {
 impl Completion {
     pub fn run(&self) -> miette::Result<()> {
         let spec = if let Some(file) = &self.file {
-            let (spec, _) = Spec::parse_file(file)?;
+            let (spec, _) = Spec_old::parse_file(file)?;
             spec
         } else {
-            Spec::parse_spec(self.spec.as_ref().unwrap())?
+            Spec_old::parse_spec(self.spec.as_ref().unwrap())?
         };
         let script = match self.shell.as_str() {
             "bash" => usage::complete::bash::complete_bash(&spec),
