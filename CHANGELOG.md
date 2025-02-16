@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.6](https://github.com/jdx/usage/compare/v2.0.5..v2.0.6) - 2025-02-16
+
+### 🔍 Other Changes
+
+- renovate skip autofix by [@jdx](https://github.com/jdx) in [#238](https://github.com/jdx/usage/pull/238)
+
 ## [2.0.5](https://github.com/jdx/usage/compare/v2.0.4..v2.0.5) - 2025-02-16
 
 ### 🐛 Bug Fixes
